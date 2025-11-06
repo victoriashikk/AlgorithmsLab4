@@ -64,7 +64,11 @@ public partial class MainWindow : Window
     {
         ISortingAlgorithm algorithm = BubbleSortRadio.IsChecked == true 
             ? new BubbleSort() 
-            : new InsertionSort();
+            : InsertionSortRadio.IsChecked == true
+                ? new InsertionSort()
+                : QuickSortRadio.IsChecked == true
+                    ? new QuickSort()
+                    : new HeapSort();
 
         if (!TryParseArray()) return;
 

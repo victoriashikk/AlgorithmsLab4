@@ -14,6 +14,8 @@
         <StackPanel Orientation="Vertical" Spacing="5">
             <RadioButton x:Name="BubbleSortRadio" Content="🫧 BubbleSort - пузырьки всплывают!" IsChecked="True"/>
             <RadioButton x:Name="InsertionSortRadio" Content="🃏 InsertionSort - вставляем карты в руку!"/>
+            <RadioButton x:Name="QuickSortRadio" Content="🎯 QuickSort - разделяй и властвуй!"/>
+            <RadioButton x:Name="HeapSortRadio" Content="🏔️ HeapSort - строим пирамиду!"/>
         </StackPanel>
         
         <!-- Ввод массива -->
