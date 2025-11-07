@@ -2,50 +2,81 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="SortingAlgorithms.GUI.MainWindow"
         Title="Сортировки для 6-классника"
-        Width="800" Height="600">
+        Width="900" Height="700">
     
-    <StackPanel Margin="20" Spacing="10">
-        <!-- Заголовок -->
-        <TextBlock Text="🎯 Демонстрация алгоритмов сортировки" 
-                   FontSize="20" FontWeight="Bold"/>
-        
-        <!-- Выбор алгоритма -->
-        <TextBlock Text="Выберите алгоритм:" FontWeight="Bold"/>
-        <StackPanel Orientation="Vertical" Spacing="5">
-            <RadioButton x:Name="BubbleSortRadio" Content="🫧 BubbleSort - пузырьки всплывают!" IsChecked="True"/>
-            <RadioButton x:Name="InsertionSortRadio" Content="🃏 InsertionSort - вставляем карты в руку!"/>
-            <RadioButton x:Name="QuickSortRadio" Content="🎯 QuickSort - разделяй и властвуй!"/>
-            <RadioButton x:Name="HeapSortRadio" Content="🏔️ HeapSort - строим пирамиду!"/>
-        </StackPanel>
-        
-        <!-- Ввод массива -->
-        <TextBlock Text="Введите числа через запятую:"/>
-        <TextBox x:Name="ArrayTextBox" Text="5, 3, 8, 1, 2"/>
-        
-        <!-- Настройка скорости -->
-        <TextBlock Text="Скорость анимации:"/>
-        <StackPanel Orientation="Horizontal" Spacing="10">
-            <TextBlock Text="Быстро" VerticalAlignment="Center"/>
-            <Slider x:Name="SpeedSlider" Minimum="50" Maximum="1000" Value="500" Width="200"/>
-            <TextBlock Text="Медленно" VerticalAlignment="Center"/>
-            <TextBlock x:Name="SpeedValueText" Text="500мс" VerticalAlignment="Center"/>
-        </StackPanel>
-        
-        <!-- Управление -->
-        <StackPanel Orientation="Horizontal" Spacing="10">
-            <Button x:Name="StartButton" Content="▶ Старт"/>
-            <Button x:Name="ResetButton" Content="🔄 Сброс"/>
-        </StackPanel>
-        
-        <!-- Визуализация -->
-        <TextBlock Text="Визуализация:" FontWeight="Bold"/>
-        <Border BorderBrush="Gray" BorderThickness="1" Height="200">
-            <Canvas x:Name="VisualizationCanvas"/>
-        </Border>
-        
-        <!-- Логи -->
-        <TextBlock Text="Лог операций:" FontWeight="Bold"/>
-        <TextBox x:Name="LogTextBox" Height="150" IsReadOnly="True"
-                 TextWrapping="Wrap" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
-    </StackPanel>
+    <TabControl>
+        <!-- Вкладка 1: Числовые сортировки -->
+        <TabItem Header="🔄 Сортировка чисел">
+            <StackPanel Margin="20" Spacing="10">
+                <TextBlock Text="🎯 Демонстрация алгоритмов сортировки чисел" FontSize="20" FontWeight="Bold"/>
+                
+                <TextBlock Text="Выберите алгоритм:" FontWeight="Bold"/>
+                <StackPanel Orientation="Vertical" Spacing="5">
+                    <RadioButton x:Name="BubbleSortRadio" Content="🫧 BubbleSort - пузырьки всплывают!" IsChecked="True"/>
+                    <RadioButton x:Name="InsertionSortRadio" Content="🃏 InsertionSort - вставляем карты в руку!"/>
+                    <RadioButton x:Name="QuickSortRadio" Content="🎯 QuickSort - разделяй и властвуй!"/>
+                    <RadioButton x:Name="HeapSortRadio" Content="🏔️ HeapSort - строим пирамиду!"/>
+                </StackPanel>
+                
+                <TextBlock Text="Введите числа через запятую:"/>
+                <TextBox x:Name="ArrayTextBox" Text="5, 3, 8, 1, 2"/>
+                
+                <TextBlock Text="Скорость анимации:"/>
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBlock Text="Быстро" VerticalAlignment="Center"/>
+                    <Slider x:Name="SpeedSlider" Minimum="50" Maximum="1000" Value="500" Width="200"/>
+                    <TextBlock Text="Медленно" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="SpeedValueText" Text="500мс" VerticalAlignment="Center"/>
+                </StackPanel>
+                
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Button x:Name="StartButton" Content="▶ Старт"/>
+                    <Button x:Name="ResetButton" Content="🔄 Сброс"/>
+                </StackPanel>
+                
+                <TextBlock Text="Визуализация:" FontWeight="Bold"/>
+                <Border BorderBrush="Gray" BorderThickness="1" Height="200">
+                    <Canvas x:Name="VisualizationCanvas"/>
+                </Border>
+                
+                <TextBlock Text="Лог операций:" FontWeight="Bold"/>
+                <TextBox x:Name="LogTextBox" Height="150" IsReadOnly="True" TextWrapping="Wrap"/>
+            </StackPanel>
+        </TabItem>
+
+        <!-- Вкладка 2: Текстовая сортировка -->
+        <TabItem Header="📚 Сортировка текста">
+            <StackPanel Margin="20" Spacing="10">
+                <TextBlock Text="📖 Сортировка и анализ текста" FontSize="20" FontWeight="Bold"/>
+                
+                <TextBlock Text="Выберите алгоритм сортировки текста:" FontWeight="Bold"/>
+                <StackPanel Orientation="Vertical" Spacing="5">
+                    <RadioButton x:Name="TextQuickSortRadio" Content="🎯 QuickSort для текста" IsChecked="True"/>
+                    <RadioButton x:Name="TextRadixSortRadio" Content="🔤 RadixSort для текста"/>
+                </StackPanel>
+                
+                <TextBlock Text="Введите текст для сортировки:"/>
+                <TextBox x:Name="TextInputTextBox" Height="80" TextWrapping="Wrap" 
+                         Text="hello world this is a test of sorting algorithms"/>
+                
+                <TextBlock Text="Или выберите тестовый текст:"/>
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Button x:Name="Test100Words" Content="100 слов"/>
+                    <Button x:Name="Test500Words" Content="500 слов"/>
+                    <Button x:Name="Test1000Words" Content="1000 слов"/>
+                </StackPanel>
+                
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Button x:Name="TextSortButton" Content="📊 Сортировать текст"/>
+                    <Button x:Name="AnalyzeButton" Content="📈 Анализ частоты слов"/>
+                </StackPanel>
+                
+                <TextBlock Text="Результат сортировки:" FontWeight="Bold"/>
+                <TextBox x:Name="TextResultTextBox" Height="200" IsReadOnly="True" TextWrapping="Wrap"/>
+                
+                <TextBlock Text="Статистика:" FontWeight="Bold"/>
+                <TextBox x:Name="StatsTextBox" Height="100" IsReadOnly="True" TextWrapping="Wrap"/>
+            </StackPanel>
+        </TabItem>
+    </TabControl>
 </Window>

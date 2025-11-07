@@ -4,6 +4,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,8 +15,10 @@ namespace SortingAlgorithms.GUI;
 public partial class MainWindow : Window
 {
     private ISortingAlgorithm? _currentAlgorithm;
+    private ITextSortingAlgorithm? _currentTextAlgorithm;
     private CancellationTokenSource? _cancellationTokenSource;
     private int[]? _currentArray;
+    private string[]? _currentWords;
 
     public MainWindow()
     {
@@ -25,25 +28,156 @@ public partial class MainWindow : Window
 
     private void SetupControls()
     {
-        // Обработчики кнопок
-        StartButton.Click += (sender, e) => StartButton_Click(sender, e);
-        ResetButton.Click += (sender, e) => ResetButton_Click(sender, e);
+        // Обработчики для числовой сортировки
+        StartButton.Click += (sender, e) => StartNumericSorting();
+        ResetButton.Click += (sender, e) => ResetVisualization();
+
+        // Обработчики для текстовой сортировки
+        TextSortButton.Click += (sender, e) => StartTextSorting();
+        AnalyzeButton.Click += (sender, e) => AnalyzeText();
+        Test100Words.Click += (sender, e) => GenerateTestText(100);
+        Test500Words.Click += (sender, e) => GenerateTestText(500);
+        Test1000Words.Click += (sender, e) => GenerateTestText(1000);
+
+        SpeedSlider.PropertyChanged += (sender, e) => 
+        {
+            if (e.Property == Slider.ValueProperty)
+            {
+                SpeedValueText.Text = $"{(int)SpeedSlider.Value}мс";
+            }
+        };
     }
-    
-    private async void StartButton_Click(object? sender, EventArgs e)
+
+    #region Числовая сортировка
+    private async void StartNumericSorting()
     {
         if (!TryParseArray()) return;
 
         _cancellationTokenSource = new CancellationTokenSource();
-        await StartSorting();
+        
+        ISortingAlgorithm algorithm = BubbleSortRadio.IsChecked == true 
+            ? new BubbleSort() 
+            : InsertionSortRadio.IsChecked == true
+                ? new InsertionSort()
+                : QuickSortRadio.IsChecked == true
+                    ? new QuickSort()
+                    : new HeapSort();
+
+        await StartNumericSorting(algorithm);
     }
 
-    private void ResetButton_Click(object? sender, EventArgs e)
+    private async Task StartNumericSorting(ISortingAlgorithm algorithm)
     {
-        _cancellationTokenSource?.Cancel();
-        ResetVisualization();
+        _currentAlgorithm = algorithm;
+        
+        algorithm.LogAdded += OnLogAdded;
+        algorithm.ArrayUpdated += OnArrayUpdated;
+
+        LogTextBox.Text = $"🚀 Запускаем {algorithm.Name}...\n";
+        LogTextBox.Text += $"📖 {algorithm.Description}\n\n";
+
+        var delay = (int)SpeedSlider.Value;
+        await algorithm.Sort(_currentArray!, delay, _cancellationTokenSource!.Token);
+
+        algorithm.LogAdded -= OnLogAdded;
+        algorithm.ArrayUpdated -= OnArrayUpdated;
+    }
+    #endregion
+
+    #region Текстовая сортировка
+    private async void StartTextSorting()
+    {
+        var text = TextInputTextBox.Text;
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            TextResultTextBox.Text = "❌ Введите текст для сортировки!";
+            return;
+        }
+
+        _currentWords = TextProcessor.SplitTextIntoWords(text);
+        TextResultTextBox.Text = $"📝 Исходный текст: {_currentWords.Length} слов\n";
+        TextResultTextBox.Text += string.Join(" ", _currentWords.Take(50)) + "...\n\n";
+
+        _cancellationTokenSource = new CancellationTokenSource();
+
+        ITextSortingAlgorithm algorithm = TextQuickSortRadio.IsChecked == true 
+            ? new QuickSortTextAdapter() 
+            : new RadixSort();
+
+        await StartTextSorting(algorithm);
     }
 
+    private async Task StartTextSorting(ITextSortingAlgorithm algorithm)
+    {
+        _currentTextAlgorithm = algorithm;
+        
+        algorithm.LogAdded += OnTextLogAdded;
+        algorithm.ArrayUpdated += OnTextArrayUpdated;
+
+        var stopwatch = Stopwatch.StartNew();
+        
+        TextResultTextBox.Text += $"🚀 Запускаем {algorithm.Name}...\n";
+        TextResultTextBox.Text += $"📖 {algorithm.Description}\n\n";
+
+        var delay = 10; // Быстрая анимация для текста
+        await algorithm.Sort(_currentWords!, delay, _cancellationTokenSource!.Token);
+
+        stopwatch.Stop();
+        
+        TextResultTextBox.Text += $"\n✅ Сортировка завершена за {stopwatch.Elapsed.TotalSeconds:F2} секунд\n";
+        TextResultTextBox.Text += $"📊 Отсортированные слова:\n{string.Join(" ", _currentWords!.Take(100))}...";
+
+        algorithm.LogAdded -= OnTextLogAdded;
+        algorithm.ArrayUpdated -= OnTextArrayUpdated;
+    }
+
+    private void AnalyzeText()
+    {
+        var text = TextInputTextBox.Text;
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            StatsTextBox.Text = "❌ Введите текст для анализа!";
+            return;
+        }
+
+        var words = TextProcessor.SplitTextIntoWords(text);
+        var frequency = TextProcessor.CountWordFrequency(words);
+        
+        var topWords = frequency.OrderByDescending(pair => pair.Value)
+                               .Take(10)
+                               .ToArray();
+
+        StatsTextBox.Text = $"📈 Статистика текста:\n";
+        StatsTextBox.Text += $"📝 Всего слов: {words.Length}\n";
+        StatsTextBox.Text += $"🔤 Уникальных слов: {frequency.Count}\n\n";
+        StatsTextBox.Text += "🏆 Топ-10 частых слов:\n";
+        
+        foreach (var (word, count) in topWords)
+        {
+            StatsTextBox.Text += $"{word}: {count} раз\n";
+        }
+    }
+
+    private void GenerateTestText(int wordCount)
+    {
+        var testWords = TextProcessor.GenerateTestText(wordCount);
+        TextInputTextBox.Text = string.Join(" ", testWords);
+        StatsTextBox.Text = $"✅ Сгенерирован тестовый текст из {wordCount} слов";
+    }
+
+    private void OnTextLogAdded(string message)
+    {
+        TextResultTextBox.Text += $"{message}\n";
+    }
+
+    private void OnTextArrayUpdated(string[] words)
+    {
+        // Для текста просто обновляем отображение
+        _currentWords = words;
+    }
+    #endregion
+
+    #region Общие методы
     private bool TryParseArray()
     {
         try
@@ -58,34 +192,6 @@ public partial class MainWindow : Window
             LogTextBox.Text = "❌ Ошибка: введите числа через запятую!";
             return false;
         }
-    }
-
-    private async Task StartSorting()
-    {
-        ISortingAlgorithm algorithm = BubbleSortRadio.IsChecked == true 
-            ? new BubbleSort() 
-            : InsertionSortRadio.IsChecked == true
-                ? new InsertionSort()
-                : QuickSortRadio.IsChecked == true
-                    ? new QuickSort()
-                    : new HeapSort();
-
-        if (!TryParseArray()) return;
-
-        _currentAlgorithm = algorithm;
-    
-        // Подписываемся на события
-        algorithm.LogAdded += OnLogAdded;
-        algorithm.ArrayUpdated += OnArrayUpdated;
-
-        LogTextBox.Text = $"🚀 Запускаем {algorithm.Name}...\n";
-        LogTextBox.Text += $"📖 {algorithm.Description}\n\n";
-
-        var delay = (int)SpeedSlider.Value;
-        await algorithm.Sort(_currentArray!, delay, _cancellationTokenSource!.Token);
-
-        algorithm.LogAdded -= OnLogAdded;
-        algorithm.ArrayUpdated -= OnArrayUpdated;
     }
 
     private void OnLogAdded(string message)
@@ -130,7 +236,11 @@ public partial class MainWindow : Window
 
     private void ResetVisualization()
     {
+        _cancellationTokenSource?.Cancel();
         VisualizationCanvas.Children.Clear();
         LogTextBox.Text = "";
+        TextResultTextBox.Text = "";
+        StatsTextBox.Text = "";
     }
+    #endregion
 }
