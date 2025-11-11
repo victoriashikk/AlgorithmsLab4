@@ -6,117 +6,101 @@ using System.Threading.Tasks;
 
 namespace SortingAlgorithms.Core;
 
-public class RadixSort : ISortingAlgorithm, ITextSortingAlgorithm{
+public class RadixSort : ITextSortingAlgorithm
+{
     public string Name => "Radix сортировка";
-    public string Description => "Сортировка поразрядно! Как сортировать слова по алфавиту, начиная с последней буквы! 🔤";
+    public string Description => "Сортировка поразрядно! Смотрим на каждую букву в словах! 🔤";
     
-    public event Action<int[]>? ArrayUpdated;
+    public event Action<string[]>? ArrayUpdated;
     public event Action<string>? LogAdded;
-    public event Action<int, int>? ElementsCompared;
-    public event Action<int, int>? ElementsSwapped;
 
-    // Для работы с массивами чисел (реализация интерфейса)
-    public async Task Sort(int[] array, int delayMs = 100, CancellationToken cancellationToken = default)
+    public async Task Sort(string[] array, int delayMs = 100, CancellationToken cancellationToken = default)
     {
-        // Преобразуем числа в строки для демонстрации
-        string[] stringArray = array.Select(x => x.ToString()).ToArray();
-        await SortStrings(stringArray, delayMs, cancellationToken);
-        
-        // Обратно в числа
-        for (int i = 0; i < array.Length; i++)
-        {
-            array[i] = int.Parse(stringArray[i]);
-        }
-        ArrayUpdated?.Invoke(array);
-    }
-
-    // Основная реализация для строк
-    public async Task SortStrings(string[] array, int delayMs = 100, CancellationToken cancellationToken = default)
-    {
-        LogAdded?.Invoke("🚀 Начинаем Radix сортировку строк!");
+        LogAdded?.Invoke("🚀 Начинаем Radix сортировку!");
+        LogAdded?.Invoke("📖 Будем сортировать слова, начиная с ПОСЛЕДНЕЙ буквы!");
         
         if (array.Length == 0) return;
 
-        // Находим максимальную длину строки
-        int maxLength = array.Max(s => s.Length);
-        LogAdded?.Invoke($"📏 Максимальная длина слова: {maxLength} символов");
+        // Находим самое длинное слово
+        int maxLength = array.Max(s => s?.Length ?? 0);
+        LogAdded?.Invoke($"📏 Самое длинное слово: {maxLength} букв");
 
-        // Сортируем по каждому разряду, начиная с последнего
-        for (int digit = maxLength - 1; digit >= 0; digit--)
+        // Сортируем по каждой позиции (с ПОСЛЕДНЕЙ до первой)
+        for (int position = maxLength - 1; position >= 0; position--)
         {
-            LogAdded?.Invoke($"🔍 Сортируем по {digit + 1}-й букве с конца");
-            await CountingSortByDigit(array, digit, delayMs, cancellationToken);
+            LogAdded?.Invoke($"\n🔤 ШАГ {maxLength - position}: Сортируем по {position + 1}-й букве с КОНЦА");
+            
+            await CountingSortByPosition(array, position, delayMs, cancellationToken);
             
             if (cancellationToken.IsCancellationRequested) return;
         }
         
+        LogAdded?.Invoke("\n🎉 Все буквы обработаны!");
         LogAdded?.Invoke("✅ Radix сортировка завершена!");
     }
 
-    private async Task CountingSortByDigit(string[] array, int digit, int delayMs, CancellationToken cancellationToken)
+    private async Task CountingSortByPosition(string[] array, int position, int delayMs, CancellationToken cancellationToken)
     {
-        const int range = 256; // ASCII characters
+        const int bucketCount = 27; // 26 букв + 1 для коротких слов
         
-        string[] output = new string[array.Length];
-        int[] count = new int[range + 1];
-
-        // Подсчитываем частоты
-        for (int i = 0; i < array.Length; i++)
+        // Создаем ведра для каждой буквы
+        List<string>[] buckets = new List<string>[bucketCount];
+        for (int i = 0; i < bucketCount; i++)
         {
-            int charIndex = GetCharIndex(array[i], digit);
-            count[charIndex + 1]++;
+            buckets[i] = new List<string>();
         }
 
-        // Накопительные суммы
-        for (int i = 1; i < count.Length; i++)
+        // Распределяем слова по ведрам
+        foreach (var word in array)
         {
-            count[i] += count[i - 1];
+            int bucketIndex = GetBucketIndex(word, position);
+            buckets[bucketIndex].Add(word);
         }
 
-        // Строим отсортированный массив
-        for (int i = array.Length - 1; i >= 0; i--)
+        // Показываем распределение
+        LogAdded?.Invoke($"📊 Распределение по буквам:");
+        for (int i = 0; i < bucketCount; i++)
         {
-            int charIndex = GetCharIndex(array[i], digit);
-            output[count[charIndex] - 1] = array[i];
-            count[charIndex]--;
-        }
-
-        // Копируем обратно
-        for (int i = 0; i < array.Length; i++)
-        {
-            if (!array[i].Equals(output[i]))
+            if (buckets[i].Count > 0)
             {
-                LogAdded?.Invoke($"🔄 Перемещаем '{array[i]}' -> '{output[i]}' по {digit + 1}-й букве");
-                array[i] = output[i];
-                
-                // Для визуализации преобразуем обратно в числа
-                int[] tempArray = array.Select(s => int.Parse(s)).ToArray();
-                ArrayUpdated?.Invoke(tempArray);
-                
-                await Task.Delay(delayMs, cancellationToken);
-                if (cancellationToken.IsCancellationRequested) return;
+                string bucketName = i == 0 ? "короткие" : $"{(char)('a' + i - 1)}";
+                LogAdded?.Invoke($"   🪣 Буква '{bucketName}': {buckets[i].Count} слов");
             }
         }
+
+        // Собираем обратно в массив
+        int currentIndex = 0;
+        for (int i = 0; i < bucketCount; i++)
+        {
+            foreach (var word in buckets[i])
+            {
+                array[currentIndex] = word;
+                currentIndex++;
+
+                // Анимация каждые 10 слов
+                if (currentIndex % 10 == 0)
+                {
+                    ArrayUpdated?.Invoke(array);
+                    await Task.Delay(delayMs, cancellationToken);
+                    if (cancellationToken.IsCancellationRequested) return;
+                }
+            }
+        }
+
+        // Финальное обновление
+        ArrayUpdated?.Invoke(array);
+        await Task.Delay(delayMs, cancellationToken);
     }
 
-    private int GetCharIndex(string str, int digit)
+    private int GetBucketIndex(string word, int position)
     {
-        if (digit >= str.Length)
-            return 0; // Для строк короче - считаем как пробел
+        if (position >= word.Length)
+            return 0; // Ведро для коротких слов
         
-        return (int)str[digit];
-    }
-    // Явная реализация для ITextSortingAlgorithm
-    event Action<string[]> ITextSortingAlgorithm.ArrayUpdated
-    {
-        add { _textArrayUpdated += value; }
-        remove { _textArrayUpdated -= value; }
-    }
-
-    private event Action<string[]> _textArrayUpdated;
-
-    async Task ITextSortingAlgorithm.Sort(string[] words, int delayMs, CancellationToken cancellationToken)
-    {
-        await SortStrings(words, delayMs, cancellationToken);
+        char c = char.ToLowerInvariant(word[position]);
+        if (c >= 'a' && c <= 'z')
+            return c - 'a' + 1; // Буквы a-z -> ведра 1-26
+        
+        return 0; // Не-буквенные символы -> в ведро для коротких
     }
 }

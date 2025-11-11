@@ -94,9 +94,14 @@ public partial class MainWindow : Window
             return;
         }
 
-        _currentWords = TextProcessor.SplitTextIntoWords(text);
-        TextResultTextBox.Text = $"📝 Исходный текст: {_currentWords.Length} слов\n";
-        TextResultTextBox.Text += string.Join(" ", _currentWords.Take(50)) + "...\n\n";
+        TextResultTextBox.Text = "⏳ Обрабатываем текст...\n";
+        
+        await Task.Run(() =>
+        {
+            _currentWords = TextProcessor.SplitTextIntoWords(text);
+        });
+
+        TextResultTextBox.Text += $"📝 Обработано слов: {_currentWords!.Length}\n\n";
 
         _cancellationTokenSource = new CancellationTokenSource();
 
@@ -104,10 +109,10 @@ public partial class MainWindow : Window
             ? new QuickSortTextAdapter() 
             : new RadixSort();
 
-        await StartTextSorting(algorithm);
+        await StartTextSortingInternal(algorithm);
     }
 
-    private async Task StartTextSorting(ITextSortingAlgorithm algorithm)
+    private async Task StartTextSortingInternal(ITextSortingAlgorithm algorithm)
     {
         _currentTextAlgorithm = algorithm;
         
@@ -119,16 +124,57 @@ public partial class MainWindow : Window
         TextResultTextBox.Text += $"🚀 Запускаем {algorithm.Name}...\n";
         TextResultTextBox.Text += $"📖 {algorithm.Description}\n\n";
 
-        var delay = 10; // Быстрая анимация для текста
+        var delay = _currentWords!.Length > 100 ? 1 : 10;
         await algorithm.Sort(_currentWords!, delay, _cancellationTokenSource!.Token);
 
         stopwatch.Stop();
         
-        TextResultTextBox.Text += $"\n✅ Сортировка завершена за {stopwatch.Elapsed.TotalSeconds:F2} секунд\n";
-        TextResultTextBox.Text += $"📊 Отсортированные слова:\n{string.Join(" ", _currentWords!.Take(100))}...";
+        // Финальный результат
+        bool isSorted = IsArraySorted(_currentWords!);
+        TextResultTextBox.Text += $"\n⏱️ Время выполнения: {stopwatch.Elapsed.TotalSeconds:F2} секунд\n";
+        TextResultTextBox.Text += $"{(isSorted ? "✅" : "❌")} Проверка сортировки: {(isSorted ? "УСПЕХ" : "ОШИБКА")}\n\n";
+        
+        // ПОЛНЫЙ ОТСОРТИРОВАННЫЙ ТЕКСТ
+        TextResultTextBox.Text += $"📖 ПОЛНЫЙ ОТСОРТИРОВАННЫЙ ТЕКСТ:\n";
+        TextResultTextBox.Text += string.Join(" ", _currentWords) + "\n\n";
+        
+        // ПОДСЧЕТ ЧАСТОТЫ КАЖДОГО СЛОВА
+        var frequency = TextProcessor.CountWordFrequency(_currentWords!);
+        TextResultTextBox.Text += $"📊 ЧАСТОТА СЛОВ (всего {frequency.Count} уникальных слов):\n";
+        
+        // Сортируем по алфавиту для удобства
+        var sortedFrequency = frequency.OrderBy(pair => pair.Key).ToArray();
+        
+        foreach (var (word, count) in sortedFrequency)
+        {
+            TextResultTextBox.Text += $"{word}: {count} раз\n";
+        }
 
         algorithm.LogAdded -= OnTextLogAdded;
         algorithm.ArrayUpdated -= OnTextArrayUpdated;
+    }
+
+    // Метод проверки сортировки
+    private bool IsArraySorted(string[] words)
+    {
+        for (int i = 1; i < words.Length; i++)
+        {
+            int comparison = string.Compare(words[i-1], words[i], StringComparison.OrdinalIgnoreCase);
+            if (comparison > 0)
+            {
+                // Найдена ошибка сортировки - показываем контекст
+                TextResultTextBox.Text += $"\n❌ Ошибка сортировки:";
+                TextResultTextBox.Text += $"\n   [{i-1}] '{words[i-1]}' > [{i}] '{words[i]}'";
+                
+                // Показываем окружающие слова для отладки
+                int start = Math.Max(0, i-3);
+                int end = Math.Min(words.Length, i+3);
+                TextResultTextBox.Text += $"\n   Контекст: ...{string.Join(" ", words.Skip(start).Take(end-start))}...";
+                
+                return false;
+            }
+        }
+        return true;
     }
 
     private void AnalyzeText()
@@ -172,7 +218,6 @@ public partial class MainWindow : Window
 
     private void OnTextArrayUpdated(string[] words)
     {
-        // Для текста просто обновляем отображение
         _currentWords = words;
     }
     #endregion

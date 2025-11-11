@@ -13,9 +13,11 @@ public class TextProcessor
         var cleanText = Regex.Replace(text, @"[^\w\s]", "");
         var words = cleanText.Split(new[] { ' ', '\n', '\r', '\t' }, 
             StringSplitOptions.RemoveEmptyEntries);
-        
-        // Приводим к нижнему регистру
-        return words.Select(word => word.ToLower()).ToArray();
+    
+        // Приводим к нижнему регистру и обрезаем пробелы
+        return words.Select(word => word.ToLowerInvariant().Trim())
+            .Where(word => !string.IsNullOrEmpty(word))
+            .ToArray();
     }
 
     public static Dictionary<string, int> CountWordFrequency(string[] words)

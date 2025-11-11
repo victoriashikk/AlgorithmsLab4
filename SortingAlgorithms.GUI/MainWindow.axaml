@@ -72,7 +72,9 @@
                 </StackPanel>
                 
                 <TextBlock Text="Результат сортировки:" FontWeight="Bold"/>
-                <TextBox x:Name="TextResultTextBox" Height="200" IsReadOnly="True" TextWrapping="Wrap"/>
+                <TextBox x:Name="TextResultTextBox" Height="300" IsReadOnly="True" 
+                         TextWrapping="Wrap" ScrollViewer.VerticalScrollBarVisibility="Auto"
+                         ScrollViewer.HorizontalScrollBarVisibility="Auto"/>
                 
                 <TextBlock Text="Статистика:" FontWeight="Bold"/>
                 <TextBox x:Name="StatsTextBox" Height="100" IsReadOnly="True" TextWrapping="Wrap"/>
